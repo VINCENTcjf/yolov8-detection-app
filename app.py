@@ -21,7 +21,10 @@ def predict_image(image):
     for result in results:
         for box in result.boxes:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
-            label = f"{result.names[int(box.cls)]} {box.conf:.2f}"
+            # 转换张量为数值
+            cls_id = int(box.cls.item())
+            conf = float(box.conf.item())
+            label = f"{result.names[cls_id]} {conf:.2f}"
             cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
             cv2.putText(image, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
     
@@ -59,7 +62,10 @@ def predict_video(video_file):
         for result in results:
             for box in result.boxes:
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
-                label = f"{result.names[int(box.cls)]} {box.conf:.2f}"
+                # 转换张量为数值
+                cls_id = int(box.cls.item())
+                conf = float(box.conf.item())
+                label = f"{result.names[cls_id]} {conf:.2f}"
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                 cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         
@@ -90,7 +96,10 @@ def predict_gif(gif_file):
             for result in results:
                 for box in result.boxes:
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
-                    label = f"{result.names[int(box.cls)]} {box.conf:.2f}"
+                    # 转换张量为数值
+                    cls_id = int(box.cls.item())
+                    conf = float(box.conf.item())
+                    label = f"{result.names[cls_id]} {conf:.2f}"
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                     cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             
@@ -107,7 +116,7 @@ def predict_gif(gif_file):
         output_gif_path,
         save_all=True,
         append_images=frames[1:],
-        duration=gif.info.get("duration", 100),  # 保留原始帧间隔
+        duration=gif.info.get("duration", 100),
         loop=0
     )
     
