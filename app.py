@@ -124,7 +124,6 @@ def predict_gif(gif_file):
     gif = Image.open(gif_file)
     frames = []
     try:
-import streamlit as st
         while True:
             # 将当前帧转换为 OpenCV 格式
             frame = np.array(gif.convert("RGB"))
