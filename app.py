@@ -5,6 +5,8 @@ from ultralytics import YOLO
 import os
 from PIL import Image
 import io
+import time
+import subprocess
 
 # 加载 YOLOv8 模型
 model = YOLO("best.pt")
@@ -21,7 +23,6 @@ def predict_image(image):
     for result in results:
         for box in result.boxes:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
-            # 转换张量为数值
             cls_id = int(box.cls.item())
             conf = float(box.conf.item())
             label = f"{result.names[cls_id]} {conf:.2f}"
@@ -45,9 +46,18 @@ def predict_video(video_file):
         st.error("Error: Could not open video file.")
         return None
     
+    # 获取原始分辨率和帧率
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = int(cap.get(cv2.CAP_PROP_FPS))
+    
+    # 降低分辨率（目标 1280x720）
+    target_width = 1280
+    target_height = int((target_width / width) * height)
+    width, height = target_width, target_height
+    
+    # 限制帧率（目标 15fps）
+    fps = min(fps, 15)
     
     # 创建临时输出视频路径（使用 mp4v 编码）
     temp_output_path = "temp_output_video.mp4"
@@ -60,10 +70,22 @@ def predict_video(video_file):
     
     # 逐帧处理
     frame_count = 0
+    start_time = time.time()
+    timeout = 90  # 设置 90 秒超时
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
+        
+        # 检查是否超时
+        if time.time() - start_time > timeout:
+            st.error("Error: Video processing timed out after 90 seconds.")
+            cap.release()
+            out.release()
+            return None
+        
+        # 调整帧大小
+        frame = cv2.resize(frame, (width, height))
         
         # 运行 YOLOv8 预测
         results = model.predict(source=frame, conf=0.1)
@@ -89,13 +111,13 @@ def predict_video(video_file):
         st.error("Error: Temporary output video file was not created.")
         return None
     
-    # 使用 FFmpeg 转换为 H.264 编码
+    # 使用 FFmpeg 转换为 H.264 编码（优化参数）
     output_path = "output_video.mp4"
-    ffmpeg_cmd = f"ffmpeg -i {temp_output_path} -vcodec libx264 -acodec aac {output_path} -y"
+    ffmpeg_cmd = f"ffmpeg -i {temp_output_path} -vcodec libx264 -preset ultrafast -crf 28 -acodec aac {output_path} -y"
     try:
-        result = os.system(ffmpeg_cmd)
-        if result != 0:
-            st.error("Error: FFmpeg conversion failed.")
+        result = subprocess.run(ffmpeg_cmd, shell=True, capture_output=True, text=True)
+        if result.returncode != 0:
+            st.error(f"Error: FFmpeg conversion failed. {result.stderr}")
             return None
     except Exception as e:
         st.error(f"Error converting video with FFmpeg: {e}")
@@ -222,28 +244,27 @@ with tab3:
     st.header("GIF Detection")
     gif_file = st.file_uploader("Upload a GIF", type=["gif"], key="gif")
     if gif_file is not None:
-        st.image(gif_file, caption="Uploaded GIF", use_column_width=True)
-        
-        if st.button("Detect GIF"):
-            with st.spinner("Processing GIF..."):
-                result_gif_path = predict_gif(gif_file)
-                if result_gif_path:
-                    try:
-                        st.image(result_gif_path, caption="Detected GIF", use_column_width=True)
-                        # 提供下载选项
-                        with open(result_gif_path, "rb") as f:
-                            gif_bytes = f.read()
-                        st.download_button(
-                            label="Download Processed GIF",
-                            data=gif_bytes,
-                            file_name="processed_gif.gif",
-                            mime="image/gif"
-                        )
-                    except Exception as e:
-                        st.error(f"Error displaying GIF: {e}")
-                    finally:
-                        # 清理输出 GIF 文件
-                        if os.path.exists(result_gif_path):
-                            os.remove(result_gif_path)
-                else:
-                    st.error("GIF processing failed.")
+        st.image(gif_file, caption="Uploaded GIF", use_column liars:
+            if st.button("Detect GIF"):
+                with st.spinner("Processing GIF..."):
+                    result_gif_path = predict_gif(gif_file)
+                    if result_gif_path:
+                        try:
+                            st.image(result_gif_path, caption="Detected GIF", use_column_width=True)
+                            # 提供下载选项
+                            with open(result_gif_path, "rb") as f:
+                                gif_bytes = f.read()
+                            st.download_button(
+                                label="Download Processed GIF",
+                                data=gif_bytes,
+                                file_name="processed_gif.gif",
+                                mime="image/gif"
+                            )
+                        except Exception as e:
+                            st.error(f"Error displaying GIF: {e}")
+                        finally:
+                            # 清理输出 GIF 文件
+                            if os.path.exists(result_gif_path):
+                                os.remove(result_gif_path)
+                    else:
+                        st.error("GIF processing failed.")
