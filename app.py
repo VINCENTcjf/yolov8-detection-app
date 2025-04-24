@@ -244,27 +244,28 @@ with tab3:
     st.header("GIF Detection")
     gif_file = st.file_uploader("Upload a GIF", type=["gif"], key="gif")
     if gif_file is not None:
-        st.image(gif_file, caption="Uploaded GIF", use_column liars:
-            if st.button("Detect GIF"):
-                with st.spinner("Processing GIF..."):
-                    result_gif_path = predict_gif(gif_file)
-                    if result_gif_path:
-                        try:
-                            st.image(result_gif_path, caption="Detected GIF", use_column_width=True)
-                            # 提供下载选项
-                            with open(result_gif_path, "rb") as f:
-                                gif_bytes = f.read()
-                            st.download_button(
-                                label="Download Processed GIF",
-                                data=gif_bytes,
-                                file_name="processed_gif.gif",
-                                mime="image/gif"
-                            )
-                        except Exception as e:
-                            st.error(f"Error displaying GIF: {e}")
-                        finally:
-                            # 清理输出 GIF 文件
-                            if os.path.exists(result_gif_path):
-                                os.remove(result_gif_path)
-                    else:
-                        st.error("GIF processing failed.")
+        st.image(gif_file, caption="Uploaded GIF", use_column_width=True)
+        
+        if st.button("Detect GIF"):
+            with st.spinner("Processing GIF..."):
+                result_gif_path = predict_gif(gif_file)
+                if result_gif_path:
+                    try:
+                        st.image(result_gif_path, caption="Detected GIF", use_column_width=True)
+                        # 提供下载选项
+                        with open(result_gif_path, "rb") as f:
+                            gif_bytes = f.read()
+                        st.download_button(
+                            label="Download Processed GIF",
+                            data=gif_bytes,
+                            file_name="processed_gif.gif",
+                            mime="image/gif"
+                        )
+                    except Exception as e:
+                        st.error(f"Error displaying GIF: {e}")
+                    finally:
+                        # 清理输出 GIF 文件
+                        if os.path.exists(result_gif_path):
+                            os.remove(result_gif_path)
+                else:
+                    st.error("GIF processing failed.")
